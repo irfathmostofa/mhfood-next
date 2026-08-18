@@ -15,55 +15,113 @@ const NAV_LINKS = [
 export default function Header({ theme }) {
   const router = useRouter();
   const pathname = usePathname();
+
   const { itemCount, openCart } = useCart();
+
+  const [mounted, setMounted] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
+
   const inputRef = useRef(null);
 
-  const storeName = theme?.logo_text || theme?.store_name || "MHFood";
+  /* ============================================================
+     HYDRATION
+  ============================================================ */
 
   useEffect(() => {
-    if (searchOpen) {
-      const t = setTimeout(() => inputRef.current?.focus(), 80);
-      return () => clearTimeout(t);
-    }
+    setMounted(true);
+  }, []);
+
+  /* ============================================================
+     SEARCH FOCUS
+  ============================================================ */
+
+  useEffect(() => {
+    if (!searchOpen) return;
+
+    const timer = setTimeout(() => {
+      inputRef.current?.focus();
+    }, 80);
+
+    return () => clearTimeout(timer);
   }, [searchOpen]);
 
+  /* ============================================================
+     KEYBOARD SHORTCUTS
+  ============================================================ */
+
   useEffect(() => {
-    function onKey(e) {
+    function handleKeyDown(e) {
       if (e.key === "Escape") {
         setSearchOpen(false);
         setMenuOpen(false);
       }
-      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
+
         setSearchOpen(true);
         setMenuOpen(false);
       }
     }
-    document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
+
+  /* ============================================================
+     ROUTE CHANGE
+  ============================================================ */
 
   useEffect(() => {
     setMenuOpen(false);
     setSearchOpen(false);
   }, [pathname]);
 
+  /* ============================================================
+     SEARCH
+  ============================================================ */
+
   function submitSearch(e) {
     e.preventDefault();
+
     const q = query.trim();
+
     setSearchOpen(false);
-    router.push(q ? `/shop?q=${encodeURIComponent(q)}` : "/shop");
+
+    if (q) {
+      router.push(`/shop?q=${encodeURIComponent(q)}`);
+    } else {
+      router.push("/shop");
+    }
   }
 
+  /* ============================================================
+     STORE NAME
+  ============================================================ */
+
+  const storeName = theme?.logo_text || theme?.store_name || "MHFood";
+
+  /* ============================================================
+     LOGO
+  ============================================================ */
+
   const logo = (
-    <Link href="/" className="flex items-center gap-2 shrink-0">
+    <Link href="/" className="flex items-center gap-2 shrink-0 min-w-0">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src="/mhfood.png" alt={storeName} className="h-9 sm:h-10 w-auto" />
-      <span className="text-lg sm:text-xl font-semibold tracking-tight text-ink">
+      <img
+        src="/mhfood.png"
+        alt={storeName}
+        className="h-8 sm:h-9 lg:h-10 w-auto shrink-0"
+      />
+
+      <span className="hidden xs:inline text-base sm:text-lg lg:text-xl font-semibold tracking-tight text-ink truncate max-w-[140px] sm:max-w-[180px] lg:max-w-none">
         {storeName.split(" ")[0]}
+
         <span className="text-accent">
           {storeName.split(" ").slice(1).join(" ")
             ? ` ${storeName.split(" ").slice(1).join(" ")}`
@@ -73,16 +131,21 @@ export default function Header({ theme }) {
     </Link>
   );
 
+  /* ============================================================
+     DESKTOP NAVIGATION
+  ============================================================ */
+
   const nav = (
-    <nav className="flex items-center gap-1 lg:gap-2">
+    <nav className="flex items-center gap-0.5 xl:gap-1">
       {NAV_LINKS.map((link) => {
         const active =
           link.to === "/" ? pathname === "/" : pathname.startsWith(link.to);
+
         return (
           <Link
             key={link.to}
             href={link.to}
-            className={`px-3 lg:px-4 py-2 rounded-full text-[13px] font-medium transition-colors ${
+            className={`whitespace-nowrap px-2.5 xl:px-3.5 py-2 rounded-full text-xs xl:text-[13px] font-medium transition-colors ${
               active
                 ? "bg-primary text-white"
                 : "text-muted hover:text-ink hover:bg-primary/5"
@@ -95,116 +158,173 @@ export default function Header({ theme }) {
     </nav>
   );
 
-  const actions = (
-    <div className="flex items-center gap-1">
-      <button
-        onClick={() => setSearchOpen((v) => !v)}
-        aria-label="Search"
-        className="p-2.5 rounded-full text-muted hover:text-ink hover:bg-primary/5 transition-colors"
-      >
-        <Search size={20} />
-      </button>
-      <button
-        onClick={openCart}
-        aria-label="Open cart"
-        className="relative p-2.5 rounded-full text-muted hover:text-ink hover:bg-primary/5 transition-colors"
-      >
-        <ShoppingBag size={20} />
-        {itemCount > 0 && (
-          <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold rounded-full bg-accent text-white">
-            {itemCount > 99 ? "99+" : itemCount}
-          </span>
-        )}
-      </button>
-    </div>
+  /* ============================================================
+     SEARCH BUTTON
+  ============================================================ */
+
+  const searchButton = (
+    <button
+      type="button"
+      onClick={() => setSearchOpen((value) => !value)}
+      aria-label="Search"
+      className="shrink-0 p-2 sm:p-2.5 rounded-full text-muted hover:text-ink hover:bg-primary/5 transition-colors"
+    >
+      <Search size={19} />
+    </button>
+  );
+
+  /* ============================================================
+     CART BUTTON
+  ============================================================ */
+
+  const cartButton = (
+    <button
+      type="button"
+      onClick={openCart}
+      aria-label="Open cart"
+      className="relative shrink-0 p-2 sm:p-2.5 rounded-full text-muted hover:text-ink hover:bg-primary/5 transition-colors"
+    >
+      <ShoppingBag size={19} />
+
+      {mounted && itemCount > 0 && (
+        <span className="absolute -top-0.5 -right-0.5 flex items-center justify-center min-w-[17px] h-[17px] px-1 text-[9px] font-bold rounded-full bg-accent text-white">
+          {itemCount > 99 ? "99+" : itemCount}
+        </span>
+      )}
+    </button>
+  );
+
+  /* ============================================================
+     MOBILE / TABLET MENU BUTTON
+  ============================================================ */
+
+  const menuButton = (
+    <button
+      type="button"
+      onClick={() => setMenuOpen(true)}
+      aria-label="Open menu"
+      className="shrink-0 p-2 sm:p-2.5 rounded-full text-muted hover:text-ink hover:bg-primary/5 transition-colors"
+    >
+      <Menu size={20} />
+    </button>
   );
 
   return (
-    <header className="sticky top-0 z-40 bg-surface/90 backdrop-blur-md border-b border-line">
-      {/* Announcement bar */}
+    <header className="sticky top-0 z-40 bg-surface/95 backdrop-blur-md border-b border-line">
+      {/* ========================================================
+          ANNOUNCEMENT BAR
+      ========================================================= */}
+
       {theme?.show_announcement_bar && theme?.announcement_text && (
-        <div className="bg-primary text-white text-center text-xs sm:text-sm font-medium px-4 py-2">
+        <div className="bg-primary text-white text-center text-xs sm:text-sm font-medium px-3 sm:px-4 py-2">
           {theme.announcement_text}
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 lg:h-20 flex items-center justify-between gap-4">
-        {logo}
+      {/* ========================================================
+          MAIN HEADER
+      ========================================================= */}
 
-        <div className="hidden lg:flex items-center">{nav}</div>
+      <div className="max-w-7xl mx-auto px-3 sm:px-5 lg:px-6 xl:px-8">
+        <div className="h-16 lg:h-[4.5rem] flex items-center gap-2 sm:gap-3 lg:gap-4">
+          {/* ====================================================
+              LOGO
+          ===================================================== */}
 
-        {/* Desktop search form */}
-        <div className="hidden lg:flex items-center">
-          <form
-            onSubmit={submitSearch}
-            className={`flex items-center overflow-hidden rounded-full border transition-all duration-300 ${
-              searchOpen
-                ? "w-56 pl-4 pr-1.5 py-1.5 border-line opacity-100"
-                : "w-0 border-transparent opacity-0"
-            }`}
-          >
-            <input
-              ref={inputRef}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search for food..."
-              className="w-full bg-transparent text-sm outline-none text-ink placeholder-muted"
-            />
-            <button
-              type="submit"
-              aria-label="Submit search"
-              className="shrink-0 p-2 rounded-full bg-primary text-white"
+          <div className="shrink-0">{logo}</div>
+
+          {/* ====================================================
+              DESKTOP NAVIGATION
+              >= 1024px
+          ===================================================== */}
+
+          <div className="hidden lg:flex items-center flex-1 min-w-0">
+            {nav}
+          </div>
+
+          {/* ====================================================
+              DESKTOP SEARCH
+              >= 1024px
+          ===================================================== */}
+
+          <div className="hidden lg:flex items-center justify-end min-w-0">
+            <form
+              onSubmit={submitSearch}
+              className={`flex items-center overflow-hidden rounded-full border transition-all duration-300 ${
+                searchOpen
+                  ? "w-40 xl:w-56 pl-3 xl:pl-4 pr-1.5 py-1.5 border-line opacity-100"
+                  : "w-0 border-transparent opacity-0"
+              }`}
             >
-              <Search size={14} />
-            </button>
-          </form>
-        </div>
+              <input
+                ref={inputRef}
+                type="text"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search food..."
+                className="w-full min-w-0 bg-transparent text-sm outline-none text-ink placeholder-muted"
+              />
 
-        <div className="hidden md:flex items-center gap-1">
-          {actions}
-          {/* <button
-            onClick={openCart}
-            aria-label="View cart"
-            className="ml-1 hidden lg:inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-accent text-white text-sm font-medium hover:opacity-90 transition-opacity"
-          >
-            <ShoppingBag size={16} />
-            View Cart
-          </button> */}
-        </div>
+              <button
+                type="submit"
+                aria-label="Submit search"
+                className="shrink-0 p-1.5 rounded-full bg-primary text-white"
+              >
+                <Search size={13} />
+              </button>
+            </form>
+          </div>
 
-        {/* Mobile controls */}
-        <div className="md:hidden flex items-center gap-1">
-          {actions}
-          <button
-            onClick={() => setMenuOpen(true)}
-            aria-label="Open menu"
-            className="p-2.5 rounded-full text-muted hover:text-ink hover:bg-primary/5"
-          >
-            <Menu size={20} />
-          </button>
+          {/* ====================================================
+              DESKTOP ACTIONS
+              >= 1024px
+          ===================================================== */}
+
+          <div className="hidden lg:flex items-center shrink-0">
+            {searchButton}
+            {cartButton}
+          </div>
+
+          {/* ====================================================
+              MOBILE / TABLET ACTIONS
+              < 1024px
+          ===================================================== */}
+
+          <div className="lg:hidden flex items-center gap-0.5 ml-auto shrink-0">
+            {searchButton}
+            {cartButton}
+            {menuButton}
+          </div>
         </div>
       </div>
 
-      {/* Mobile search bar */}
+      {/* ========================================================
+          MOBILE / TABLET SEARCH
+          < 1024px
+      ========================================================= */}
+
       {searchOpen && (
-        <div className="md:hidden px-4 pb-4">
-          <form onSubmit={submitSearch} className="relative">
+        <div className="lg:hidden border-t border-line bg-surface px-3 sm:px-5 pb-3 sm:pb-4">
+          <form onSubmit={submitSearch} className="relative pt-3">
             <Search
               size={18}
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted"
+              className="absolute left-3.5 top-[calc(50%+6px)] -translate-y-1/2 text-muted"
             />
+
             <input
               autoFocus
+              type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search for food..."
-              className="w-full pl-10 pr-3 py-3 rounded-xl text-sm outline-none focus:ring-2 focus:ring-accent/30 border border-line bg-background"
+              className="w-full h-11 sm:h-12 pl-10 pr-11 rounded-xl text-sm outline-none focus:ring-2 focus:ring-accent/30 border border-line bg-background"
             />
+
             <button
               type="button"
               onClick={() => setSearchOpen(false)}
               aria-label="Close search"
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted"
+              className="absolute right-3 top-[calc(50%+6px)] -translate-y-1/2 text-muted hover:text-ink"
             >
               <X size={18} />
             </button>
@@ -212,46 +332,100 @@ export default function Header({ theme }) {
         </div>
       )}
 
-      {/* Mobile menu drawer */}
+      {/* ========================================================
+          MOBILE / TABLET MENU OVERLAY
+      ========================================================= */}
+
       <div
         onClick={() => setMenuOpen(false)}
-        className={`fixed inset-0 bg-black/40 z-[60] transition-opacity md:hidden ${
-          menuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+        aria-hidden="true"
+        className={`fixed inset-0 bg-black/40 z-[60] transition-opacity duration-300 lg:hidden ${
+          menuOpen
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none"
         }`}
       />
+
+      {/* ========================================================
+          MOBILE / TABLET MENU DRAWER
+      ========================================================= */}
+
       {menuOpen && (
-        <aside className="fixed top-0 right-0 h-full w-72 bg-surface z-[70] shadow-2xl flex flex-col md:hidden">
-          <div className="flex items-center justify-between px-5 h-16 border-b border-line shrink-0">
-            <span className="font-display text-lg text-ink">{storeName}</span>
+        <aside
+          className="fixed top-0 right-0 h-[100dvh] w-[min(20rem,85vw)] bg-surface z-[70] shadow-2xl flex flex-col lg:hidden"
+          aria-label="Mobile navigation"
+        >
+          {/* ====================================================
+              DRAWER HEADER
+          ===================================================== */}
+
+          <div className="flex items-center justify-between px-4 sm:px-5 h-16 border-b border-line shrink-0">
+            <div className="flex items-center gap-2 min-w-0">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="/mhfood.png"
+                alt={storeName}
+                className="h-8 w-auto shrink-0"
+              />
+
+              <span className="font-display text-base sm:text-lg text-ink truncate">
+                {storeName}
+              </span>
+            </div>
+
             <button
+              type="button"
               onClick={() => setMenuOpen(false)}
               aria-label="Close menu"
-              className="p-1.5 rounded-full hover:bg-primary/5 text-ink"
+              className="shrink-0 p-2 rounded-full hover:bg-primary/5 text-ink transition-colors"
             >
               <X size={20} />
             </button>
           </div>
+
+          {/* ====================================================
+              DRAWER NAVIGATION
+          ===================================================== */}
+
           <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-            {NAV_LINKS.map((link) => (
-              <Link
-                key={link.to}
-                href={link.to}
-                onClick={() => setMenuOpen(false)}
-                className="block px-3 py-3 text-sm font-medium text-ink hover:text-accent hover:bg-primary/5 rounded-xl transition-colors"
-              >
-                {link.label}
-              </Link>
-            ))}
+            {NAV_LINKS.map((link) => {
+              const active =
+                link.to === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(link.to);
+
+              return (
+                <Link
+                  key={link.to}
+                  href={link.to}
+                  onClick={() => setMenuOpen(false)}
+                  className={`block px-3 py-3 text-sm font-medium rounded-xl transition-colors ${
+                    active
+                      ? "text-accent bg-primary/5"
+                      : "text-ink hover:text-accent hover:bg-primary/5"
+                  }`}
+                >
+                  {link.label}
+                </Link>
+              );
+            })}
           </nav>
-          <div className="border-t border-line px-5 py-4 shrink-0">
+
+          {/* ====================================================
+              DRAWER CART
+          ===================================================== */}
+
+          <div className="border-t border-line px-4 sm:px-5 py-4 shrink-0">
             <button
+              type="button"
               onClick={() => {
                 setMenuOpen(false);
                 openCart();
               }}
-              className="btn btn-primary w-full"
+              className="btn btn-primary w-full flex items-center justify-center gap-2"
             >
-              <ShoppingBag size={16} /> View Cart ({itemCount})
+              <ShoppingBag size={16} />
+              View Cart ({mounted ? itemCount : 0})
             </button>
           </div>
         </aside>
