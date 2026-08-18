@@ -37,13 +37,13 @@ export default function AdminShell({ children }) {
   return (
     <div className="min-h-screen bg-background flex">
       {/* Sidebar */}
-      <aside className="hidden sm:flex flex-col w-60 shrink-0 bg-ink text-white">
+      <aside className="hidden sm:flex flex-col w-60 shrink-0 bg-ink text-white h-screen sticky top-0">
         <div className="px-6 py-6 border-b border-white/10">
           <p className="font-display text-lg">Admin</p>
           <p className="text-xs text-white/50 mt-0.5">Store Manager</p>
         </div>
 
-        <nav className="flex-1 py-4">
+        <nav className="flex-1 py-4 overflow-y-auto">
           {NAV.map((item) => {
             const active =
               item.href === "/admin"
@@ -66,7 +66,7 @@ export default function AdminShell({ children }) {
           })}
         </nav>
 
-        <div className="px-6 py-5 border-t border-white/10 space-y-1">
+        <div className="px-6 py-5 border-t border-white/10 space-y-1 shrink-0">
           <Link
             href="/"
             className="flex items-center gap-2 text-xs text-white/60 hover:text-white"

@@ -19,7 +19,7 @@ export default function ShopClient() {
   const searchParams = useSearchParams();
 
   const [categories, setCategories] = useState([]);
-  const [categoriesReady, setCategoriesReady] = useState(false);
+  const [categoriesLoading, setCategoriesLoading] = useState(true);
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -35,33 +35,51 @@ export default function ShopClient() {
     searchParams.get("instock") === "1",
   );
 
-  // Resolve a category param that may be a slug (from sitemap / shared
-  // links) or a UUID id (from in-app category cards) to a category id.
-  const resolveCategory = useMemo(() => {
-    return (value) => {
-      if (!value || value === "all") return "all";
-      const bySlug = categories.find((c) => c.slug === value);
-      return bySlug ? bySlug.id : value;
-    };
-  }, [categories]);
-
-  useEffect(() => {
-    setQuery(searchParams.get("q") || "");
-    const rawCat = searchParams.get("category") || "all";
-    setActiveCategory(resolveCategory(rawCat));
-  }, [searchParams, resolveCategory]);
-
+  // Load categories first
   useEffect(() => {
     async function loadCategories() {
+      setCategoriesLoading(true);
       const { data } = await supabase
         .from("categories")
         .select("*")
         .order("name");
       setCategories(data || []);
-      setCategoriesReady(true);
+      setCategoriesLoading(false);
     }
     loadCategories();
   }, []);
+
+  // Resolve category once categories are loaded
+  useEffect(() => {
+    if (categoriesLoading) return;
+
+    const rawCat = searchParams.get("category") || "all";
+
+    if (rawCat === "all") {
+      setActiveCategory("all");
+      return;
+    }
+
+    // Try to find by slug first
+    const bySlug = categories.find((c) => c.slug === rawCat);
+    if (bySlug) {
+      setActiveCategory(bySlug.id);
+      return;
+    }
+
+    // Check if rawCat is a valid UUID (category id)
+    const isUUID =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        rawCat,
+      );
+    if (isUUID && categories.some((c) => c.id === rawCat)) {
+      setActiveCategory(rawCat);
+      return;
+    }
+
+    // Fallback to "all"
+    setActiveCategory("all");
+  }, [categories, categoriesLoading, searchParams]);
 
   // Reflect filters in the URL
   useEffect(() => {
@@ -78,8 +96,10 @@ export default function ShopClient() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [query, activeCategory, sort, minPrice, maxPrice, inStockOnly]);
 
+  // Load products after categories are ready
   useEffect(() => {
-    if (!categoriesReady) return;
+    if (categoriesLoading) return;
+
     let cancelled = false;
 
     async function loadProducts() {
@@ -111,7 +131,15 @@ export default function ShopClient() {
     return () => {
       cancelled = true;
     };
-  }, [categoriesReady, activeCategory, query, sort, minPrice, maxPrice, inStockOnly]);
+  }, [
+    categoriesLoading,
+    activeCategory,
+    query,
+    sort,
+    minPrice,
+    maxPrice,
+    inStockOnly,
+  ]);
 
   function resetFilters() {
     setQuery("");
@@ -180,19 +208,30 @@ export default function ShopClient() {
             >
               All Products
             </button>
-            {categories.map((cat) => (
-              <button
-                key={cat.id}
-                onClick={() => setActiveCategory(cat.id)}
-                className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${
-                  activeCategory === cat.id
-                    ? "bg-primary text-white"
-                    : "text-ink hover:bg-primary/5"
-                }`}
-              >
-                {cat.name}
-              </button>
-            ))}
+            {categoriesLoading ? (
+              <div className="space-y-2 px-3 py-2">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-8 bg-primary/5 rounded-lg animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : (
+              categories.map((cat) => (
+                <button
+                  key={cat.id}
+                  onClick={() => setActiveCategory(cat.id)}
+                  className={`text-left px-3 py-2 rounded-lg text-sm transition-colors ${
+                    activeCategory === cat.id
+                      ? "bg-primary text-white"
+                      : "text-ink hover:bg-primary/5"
+                  }`}
+                >
+                  {cat.name}
+                </button>
+              ))
+            )}
           </div>
         </div>
 
@@ -207,7 +246,15 @@ export default function ShopClient() {
       </div>
     ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [minPrice, maxPrice, inStockOnly, activeCategory, activeFilterCount],
+    [
+      minPrice,
+      maxPrice,
+      inStockOnly,
+      activeCategory,
+      activeFilterCount,
+      categories,
+      categoriesLoading,
+    ],
   );
 
   return (
@@ -263,7 +310,7 @@ export default function ShopClient() {
         </aside>
 
         <div className="flex-1 min-w-0">
-          {loading ? (
+          {loading || categoriesLoading ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-3 gap-4 sm:gap-6">
               {Array.from({ length: 6 }).map((_, i) => (
                 <div

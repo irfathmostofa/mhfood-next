@@ -2,9 +2,18 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Minus, Plus, ShoppingBag, Zap } from "lucide-react";
+import {
+  Check,
+  Minus,
+  Phone,
+  MessageCircle,
+  Plus,
+  ShoppingBag,
+  Zap,
+} from "lucide-react";
 import { useCart } from "@/hooks/useCart";
 import { trackViewContent, trackAddToCart } from "@/components/Analytics";
+import { supabase } from "@/lib/supabase";
 import StarRating from "./StarRating";
 import ReviewsList from "./ReviewsList";
 
@@ -15,6 +24,44 @@ export default function ProductView({ product }) {
   const [quantity, setQuantity] = useState(1);
   const [addedMsg, setAddedMsg] = useState(false);
   const [selected, setSelected] = useState({});
+  const [siteSettings, setSiteSettings] = useState(null);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+
+  // Fetch site settings
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadSettings() {
+      try {
+        const { data, error } = await supabase
+          .from("site_settings")
+          .select("whatsapp_enabled, whatsapp_number, store_phone")
+          .eq("id", 1)
+          .maybeSingle();
+
+        if (error) {
+          console.error("Error loading site settings:", error);
+          return;
+        }
+
+        if (!cancelled) {
+          setSiteSettings(data);
+        }
+      } catch (error) {
+        console.error("Failed to load settings:", error);
+      } finally {
+        if (!cancelled) {
+          setSettingsLoading(false);
+        }
+      }
+    }
+
+    loadSettings();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     trackViewContent({
@@ -44,11 +91,15 @@ export default function ProductView({ product }) {
   }, [product.variants]);
 
   const allSelected =
-    groups.length === 0 ||
-    groups.every((g) => selected[g.name]);
+    groups.length === 0 || groups.every((g) => selected[g.name]);
 
   const selectedOptions = groups
-    .map((g) => groups && selected[g.name] && g.options.find((o) => o.id === selected[g.name]))
+    .map(
+      (g) =>
+        groups &&
+        selected[g.name] &&
+        g.options.find((o) => o.id === selected[g.name]),
+    )
     .filter(Boolean);
 
   const priceAdjustment = selectedOptions.reduce(
@@ -58,7 +109,10 @@ export default function ProductView({ product }) {
   const price = Number(product.price) + priceAdjustment;
 
   const variantStock = allSelected
-    ? selectedOptions.reduce((min, o) => Math.min(min, Number(o.stock)), Infinity)
+    ? selectedOptions.reduce(
+        (min, o) => Math.min(min, Number(o.stock)),
+        Infinity,
+      )
     : Infinity;
   const effectiveStock =
     groups.length === 0
@@ -91,7 +145,9 @@ export default function ProductView({ product }) {
       content_type: "product",
       content_ids: [product.id],
       content_name: product.name,
-      value: Number(product.price) + selection.reduce((s, o) => s + Number(o.price_adjustment || 0), 0),
+      value:
+        Number(product.price) +
+        selection.reduce((s, o) => s + Number(o.price_adjustment || 0), 0),
       currency: "BDT",
       quantity,
     });
@@ -114,6 +170,13 @@ export default function ProductView({ product }) {
     router.push("/checkout");
   }
 
+  // Check if WhatsApp and Phone are enabled using existing schema fields
+  const showWhatsApp =
+    siteSettings?.whatsapp_enabled && siteSettings?.whatsapp_number;
+  const showPhone = siteSettings?.store_phone; // Using store_phone from your schema
+  const whatsappNumber = siteSettings?.whatsapp_number || "";
+  const phoneNumber = siteSettings?.store_phone || "";
+
   return (
     <>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
@@ -122,7 +185,10 @@ export default function ProductView({ product }) {
           <div className="aspect-square rounded-2xl overflow-hidden bg-primary/5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={images[activeImage]?.image_url || "https://placehold.co/600x600?text=No+Image"}
+              src={
+                images[activeImage]?.image_url ||
+                "https://placehold.co/600x600?text=No+Image"
+              }
               alt={product.name}
               className="w-full h-full object-cover"
             />
@@ -163,7 +229,8 @@ export default function ProductView({ product }) {
           <div className="flex items-center gap-3 mb-4">
             <StarRating rating={product.avg_rating} />
             <span className="text-sm text-muted">
-              {product.review_count} review{product.review_count === 1 ? "" : "s"}
+              {product.review_count} review
+              {product.review_count === 1 ? "" : "s"}
             </span>
             {product.total_sold > 0 && (
               <span className="text-sm text-muted">
@@ -226,7 +293,9 @@ export default function ProductView({ product }) {
           )}
 
           {outOfStock ? (
-            <p className="text-sm font-medium text-red-500 mb-4">Out of stock</p>
+            <p className="text-sm font-medium text-red-500 mb-4">
+              Out of stock
+            </p>
           ) : (
             <div className="flex items-center gap-3 mb-6">
               <div className="flex items-center border border-line rounded-full">
@@ -237,7 +306,9 @@ export default function ProductView({ product }) {
                 >
                   <Minus size={16} />
                 </button>
-                <span className="w-8 text-center text-sm text-ink">{quantity}</span>
+                <span className="w-8 text-center text-sm text-ink">
+                  {quantity}
+                </span>
                 <button
                   onClick={() =>
                     setQuantity((q) => Math.min(effectiveStock, q + 1))
@@ -260,11 +331,7 @@ export default function ProductView({ product }) {
               disabled={outOfStock || !allSelected}
               className="flex-1 btn btn-outline"
             >
-              {addedMsg ? (
-                <Check size={16} />
-              ) : (
-                <ShoppingBag size={16} />
-              )}
+              {addedMsg ? <Check size={16} /> : <ShoppingBag size={16} />}
               {addedMsg ? "Added" : "Add to Cart"}
             </button>
             <button
@@ -276,6 +343,38 @@ export default function ProductView({ product }) {
               Buy Now
             </button>
           </div>
+
+          {/* WhatsApp & Call Order Buttons */}
+          {!settingsLoading && (showWhatsApp || showPhone) && (
+            <div className="mt-6 pt-6 border-t border-line">
+              <p className="text-sm font-medium text-ink mb-3">Quick Order</p>
+              <div className="flex flex-col sm:flex-row gap-3">
+                {showWhatsApp && (
+                  <a
+                    href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(
+                      `Hi, I'm interested in "${product.name}". Could you please provide more information?`,
+                    )}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-[#25D366] text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
+                  >
+                    <MessageCircle size={20} />
+                    Order via WhatsApp
+                  </a>
+                )}
+
+                {showPhone && (
+                  <a
+                    href={`tel:${phoneNumber}`}
+                    className="flex items-center justify-center gap-2 px-6 py-3 bg-[#0088CC] text-white rounded-xl font-medium hover:opacity-90 transition-opacity"
+                  >
+                    <Phone size={20} />
+                    Call to Order
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

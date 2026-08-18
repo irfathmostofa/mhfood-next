@@ -9,6 +9,13 @@ import {
   ChevronDown,
   ArrowUp,
   ArrowDown,
+  Palette,
+  Search,
+  Phone,
+  Layout,
+  Tag,
+  Truck,
+  Percent,
 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
@@ -17,6 +24,7 @@ export default function AdminSettings() {
   const [saving, setSaving] = useState(false);
   const [flash, setFlash] = useState("");
   const [error, setError] = useState("");
+  const [activeTab, setActiveTab] = useState("appearance");
 
   const [theme, setTheme] = useState(null);
   const [seo, setSeo] = useState(null);
@@ -25,6 +33,16 @@ export default function AdminSettings() {
   const [coupons, setCoupons] = useState([]);
   const [zones, setZones] = useState([]);
   const [rules, setRules] = useState([]);
+
+  const tabs = [
+    { id: "appearance", label: "Appearance", icon: Palette },
+    { id: "seo", label: "SEO", icon: Search },
+    { id: "contact", label: "Contact & Delivery", icon: Phone },
+    { id: "sections", label: "Home Sections", icon: Layout },
+    { id: "coupons", label: "Coupons", icon: Tag },
+    { id: "zones", label: "Delivery Zones", icon: Truck },
+    { id: "rules", label: "Discount Rules", icon: Percent },
+  ];
 
   useEffect(() => {
     loadAll();
@@ -43,10 +61,22 @@ export default function AdminSettings() {
       supabase.from("theme_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("seo_settings").select("*").eq("id", 1).maybeSingle(),
       supabase.from("site_settings").select("*").eq("id", 1).maybeSingle(),
-      supabase.from("home_sections").select("*").order("sort_order", { ascending: true }),
-      supabase.from("coupons").select("*").order("created_at", { ascending: false }),
-      supabase.from("delivery_zones").select("*").order("sort_order", { ascending: true }),
-      supabase.from("discount_rules").select("*").order("sort_order", { ascending: true }),
+      supabase
+        .from("home_sections")
+        .select("*")
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("coupons")
+        .select("*")
+        .order("created_at", { ascending: false }),
+      supabase
+        .from("delivery_zones")
+        .select("*")
+        .order("sort_order", { ascending: true }),
+      supabase
+        .from("discount_rules")
+        .select("*")
+        .order("sort_order", { ascending: true }),
     ]);
 
     setTheme(themeData || {});
@@ -81,7 +111,11 @@ export default function AdminSettings() {
   }
 
   if (loading) {
-    return <p className="text-sm text-muted py-10 text-center">Loading settings...</p>;
+    return (
+      <p className="text-sm text-muted py-10 text-center">
+        Loading settings...
+      </p>
+    );
   }
 
   return (
@@ -101,35 +135,127 @@ export default function AdminSettings() {
         </p>
       )}
 
-      <form onSubmit={saveAll} className="space-y-6 max-w-3xl">
-        <ThemeForm theme={theme} setTheme={setTheme} />
-        <SeoForm seo={seo} setSeo={setSeo} />
-        <ContactForm site={site} setSite={setSite} />
+      {/* Tabs */}
+      <div className="border-b border-line mb-6 overflow-x-auto">
+        <nav className="flex gap-1 min-w-max">
+          {tabs.map((tab) => {
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors border-b-2 ${
+                  isActive
+                    ? "border-primary text-primary"
+                    : "border-transparent text-muted hover:text-ink"
+                }`}
+              >
+                <tab.icon size={16} />
+                {tab.label}
+              </button>
+            );
+          })}
+        </nav>
+      </div>
 
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            disabled={saving}
-            className="btn btn-primary disabled:opacity-60"
-          >
-            {saving ? (
-              <>
-                <Loader2 size={16} className="animate-spin" /> Saving...
-              </>
-            ) : (
-              <>
-                <Save size={16} /> Save Appearance & SEO
-              </>
-            )}
-          </button>
-        </div>
-      </form>
+      {/* Tab Content */}
+      <div className="max-w-3xl">
+        {activeTab === "appearance" && (
+          <form onSubmit={saveAll} className="space-y-6">
+            <ThemeForm theme={theme} setTheme={setTheme} />
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={saving}
+                className="btn btn-primary disabled:opacity-60"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" /> Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} /> Save Appearance
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
 
-      <div className="space-y-6 max-w-3xl mt-6">
-        <SectionsManager sections={sections} setSections={setSections} />
-        <CouponsManager coupons={coupons} setCoupons={setCoupons} showFlash={showFlash} />
-        <ZonesManager zones={zones} setZones={setZones} showFlash={showFlash} />
-        <RulesManager rules={rules} setRules={setRules} showFlash={showFlash} />
+        {activeTab === "seo" && (
+          <form onSubmit={saveAll} className="space-y-6">
+            <SeoForm seo={seo} setSeo={setSeo} />
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={saving}
+                className="btn btn-primary disabled:opacity-60"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" /> Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} /> Save SEO
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {activeTab === "contact" && (
+          <form onSubmit={saveAll} className="space-y-6">
+            <ContactForm site={site} setSite={setSite} />
+            <div className="flex justify-end">
+              <button
+                type="submit"
+                disabled={saving}
+                className="btn btn-primary disabled:opacity-60"
+              >
+                {saving ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" /> Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save size={16} /> Save Contact Settings
+                  </>
+                )}
+              </button>
+            </div>
+          </form>
+        )}
+
+        {activeTab === "sections" && (
+          <SectionsManager sections={sections} setSections={setSections} />
+        )}
+
+        {activeTab === "coupons" && (
+          <CouponsManager
+            coupons={coupons}
+            setCoupons={setCoupons}
+            showFlash={showFlash}
+          />
+        )}
+
+        {activeTab === "zones" && (
+          <ZonesManager
+            zones={zones}
+            setZones={setZones}
+            showFlash={showFlash}
+          />
+        )}
+
+        {activeTab === "rules" && (
+          <RulesManager
+            rules={rules}
+            setRules={setRules}
+            showFlash={showFlash}
+          />
+        )}
       </div>
     </div>
   );
@@ -328,6 +454,16 @@ function ContactForm({ site, setSite }) {
         </div>
       </div>
 
+      <div>
+        <label className="label">Store Phone</label>
+        <input
+          value={site.store_phone || ""}
+          onChange={(e) => set("store_phone", e.target.value)}
+          placeholder="8801XXXXXXXXX"
+          className="input"
+        />
+      </div>
+
       <div className="flex items-center gap-3 mb-2">
         <label className="flex items-center gap-2 text-sm text-ink">
           <input
@@ -362,15 +498,12 @@ const SECTION_KEYS = {
 };
 
 function SectionsManager({ sections, setSections }) {
-  const [open, setOpen] = useState(false);
-
   async function toggle(key, enabled) {
-    const updated = sections.map((s) => (s.key === key ? { ...s, enabled } : s));
+    const updated = sections.map((s) =>
+      s.key === key ? { ...s, enabled } : s,
+    );
     setSections(updated);
-    await supabase
-      .from("home_sections")
-      .update({ enabled })
-      .eq("key", key);
+    await supabase.from("home_sections").update({ enabled }).eq("key", key);
   }
 
   async function saveSection(section) {
@@ -378,7 +511,11 @@ function SectionsManager({ sections, setSections }) {
     setSections(updated);
     await supabase
       .from("home_sections")
-      .update({ title: section.title, subtitle: section.subtitle, items_per_page: section.items_per_page })
+      .update({
+        title: section.title,
+        subtitle: section.subtitle,
+        items_per_page: section.items_per_page,
+      })
       .eq("id", section.id);
   }
 
@@ -391,93 +528,88 @@ function SectionsManager({ sections, setSections }) {
     setSections(next);
     await Promise.all(
       next.map((s, i) =>
-        supabase.from("home_sections").update({ sort_order: i + 1 }).eq("id", s.id),
+        supabase
+          .from("home_sections")
+          .update({ sort_order: i + 1 })
+          .eq("id", s.id),
       ),
     );
   }
 
   return (
-    <Section
-      title="Home Page Sections"
-      collapsible
-      open={open}
-      setOpen={setOpen}
-    >
-      {!open && null}
-      {open && (
-        <div className="space-y-3">
-          {sections.map((section, index) => (
-            <div key={section.id} className="border border-line rounded-xl p-4">
-              <div className="flex items-center justify-between mb-3">
-                <label className="flex items-center gap-2 text-sm font-medium text-ink">
-                  <input
-                    type="checkbox"
-                    checked={section.enabled}
-                    onChange={(e) => toggle(section.key, e.target.checked)}
-                  />
-                  {SECTION_KEYS[section.key] || section.key}
-                </label>
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    onClick={() => move(index, -1)}
-                    disabled={index === 0}
-                    className="p-1.5 text-muted hover:text-ink disabled:opacity-30"
-                  >
-                    <ArrowUp size={14} />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => move(index, 1)}
-                    disabled={index === sections.length - 1}
-                    className="p-1.5 text-muted hover:text-ink disabled:opacity-30"
-                  >
-                    <ArrowDown size={14} />
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="label">Title</label>
-                  <input
-                    value={section.title || ""}
-                    onChange={(e) =>
-                      saveSection({ ...section, title: e.target.value })
-                    }
-                    className="input input-sm"
-                  />
-                </div>
-                <div>
-                  <label className="label">Items</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={section.items_per_page || 8}
-                    onChange={(e) =>
-                      saveSection({
-                        ...section,
-                        items_per_page: Number(e.target.value) || 8,
-                      })
-                    }
-                    className="input input-sm"
-                  />
-                </div>
-              </div>
-              <div className="mt-3">
-                <label className="label">Subtitle</label>
+    <Section title="Home Page Sections">
+      <div className="space-y-3">
+        {sections.map((section, index) => (
+          <div key={section.id} className="border border-line rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <label className="flex items-center gap-2 text-sm font-medium text-ink">
                 <input
-                  value={section.subtitle || ""}
+                  type="checkbox"
+                  checked={section.enabled}
+                  onChange={(e) => toggle(section.key, e.target.checked)}
+                />
+                {SECTION_KEYS[section.key] || section.key}
+              </label>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => move(index, -1)}
+                  disabled={index === 0}
+                  className="p-1.5 text-muted hover:text-ink disabled:opacity-30"
+                >
+                  <ArrowUp size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => move(index, 1)}
+                  disabled={index === sections.length - 1}
+                  className="p-1.5 text-muted hover:text-ink disabled:opacity-30"
+                >
+                  <ArrowDown size={14} />
+                </button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="label">Title</label>
+                <input
+                  value={section.title || ""}
                   onChange={(e) =>
-                    saveSection({ ...section, subtitle: e.target.value })
+                    saveSection({ ...section, title: e.target.value })
+                  }
+                  className="input input-sm"
+                />
+              </div>
+              <div>
+                <label className="label">Items</label>
+                <input
+                  type="number"
+                  min="1"
+                  value={section.items_per_page || 8}
+                  onChange={(e) =>
+                    saveSection({
+                      ...section,
+                      items_per_page: Number(e.target.value) || 8,
+                    })
                   }
                   className="input input-sm"
                 />
               </div>
             </div>
-          ))}
-        </div>
-      )}
+            <div className="mt-3">
+              <label className="label">Subtitle</label>
+              <input
+                value={section.subtitle || ""}
+                onChange={(e) =>
+                  saveSection({ ...section, subtitle: e.target.value })
+                }
+                className="input input-sm"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
     </Section>
   );
 }
@@ -497,7 +629,6 @@ const EMPTY_COUPON = {
 };
 
 function CouponsManager({ coupons, setCoupons, showFlash }) {
-  const [open, setOpen] = useState(false);
   const [form, setForm] = useState(EMPTY_COUPON);
   const [saving, setSaving] = useState(false);
 
@@ -559,183 +690,198 @@ function CouponsManager({ coupons, setCoupons, showFlash }) {
   }
 
   return (
-    <Section title="Coupons" collapsible open={open} setOpen={setOpen}>
-      {open && (
-        <>
-          <form
-            onSubmit={save}
-            className="grid grid-cols-2 gap-3 border border-dashed border-line rounded-xl p-4 mb-4"
+    <Section title="Coupons">
+      <form
+        onSubmit={save}
+        className="grid grid-cols-2 gap-3 border border-dashed border-line rounded-xl p-4 mb-4"
+      >
+        <div>
+          <label className="label">Code</label>
+          <input
+            value={form.code}
+            onChange={(e) =>
+              setForm({ ...form, code: e.target.value.toUpperCase() })
+            }
+            placeholder="SAVE10"
+            className="input"
+            required
+          />
+        </div>
+        <div>
+          <label className="label">Type</label>
+          <select
+            value={form.discount_type}
+            onChange={(e) =>
+              setForm({ ...form, discount_type: e.target.value })
+            }
+            className="input"
+          >
+            <option value="percentage">Percentage</option>
+            <option value="fixed">Fixed (৳)</option>
+          </select>
+        </div>
+        <div>
+          <label className="label">Value</label>
+          <input
+            type="number"
+            value={form.discount_value}
+            onChange={(e) =>
+              setForm({ ...form, discount_value: e.target.value })
+            }
+            className="input"
+            required
+          />
+        </div>
+        <div>
+          <label className="label">Min Subtotal (৳)</label>
+          <input
+            type="number"
+            value={form.min_subtotal}
+            onChange={(e) => setForm({ ...form, min_subtotal: e.target.value })}
+            className="input"
+          />
+        </div>
+        <div>
+          <label className="label">Max Discount (৳, optional)</label>
+          <input
+            type="number"
+            value={form.max_discount}
+            onChange={(e) => setForm({ ...form, max_discount: e.target.value })}
+            className="input"
+          />
+        </div>
+        <div>
+          <label className="label">Usage Limit (0 = unlimited)</label>
+          <input
+            type="number"
+            value={form.usage_limit}
+            onChange={(e) => setForm({ ...form, usage_limit: e.target.value })}
+            className="input"
+          />
+        </div>
+        <div>
+          <label className="label">Start (optional)</label>
+          <input
+            type="datetime-local"
+            value={form.starts_at}
+            onChange={(e) => setForm({ ...form, starts_at: e.target.value })}
+            className="input"
+          />
+        </div>
+        <div>
+          <label className="label">End (optional)</label>
+          <input
+            type="datetime-local"
+            value={form.ends_at}
+            onChange={(e) => setForm({ ...form, ends_at: e.target.value })}
+            className="input"
+          />
+        </div>
+
+        <div className="col-span-2 flex items-center justify-between">
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              checked={form.is_active}
+              onChange={(e) =>
+                setForm({ ...form, is_active: e.target.checked })
+              }
+            />
+            Active
+          </label>
+          <div className="flex gap-2">
+            {form.id && (
+              <button
+                type="button"
+                onClick={() => setForm(EMPTY_COUPON)}
+                className="btn btn-ghost btn-sm"
+              >
+                Cancel
+              </button>
+            )}
+            <button
+              type="submit"
+              disabled={saving}
+              className="btn btn-primary btn-sm disabled:opacity-60"
+            >
+              {saving ? (
+                <Loader2 size={14} className="animate-spin" />
+              ) : (
+                <Save size={14} />
+              )}
+              {form.id ? "Update" : "Create"}
+            </button>
+          </div>
+        </div>
+      </form>
+
+      <ul className="divide-y divide-line">
+        {coupons.map((coupon) => (
+          <li
+            key={coupon.id}
+            className="flex items-center justify-between py-2.5"
           >
             <div>
-              <label className="label">Code</label>
-              <input
-                value={form.code}
-                onChange={(e) => setForm({ ...form, code: e.target.value.toUpperCase() })}
-                placeholder="SAVE10"
-                className="input"
-                required
-              />
+              <p className="text-sm font-medium text-ink">{coupon.code}</p>
+              <p className="text-xs text-muted">
+                {coupon.discount_type === "percentage"
+                  ? `${coupon.discount_value}% off`
+                  : `৳${coupon.discount_value} off`}
+                {Number(coupon.min_subtotal) > 0
+                  ? ` · min ৳${coupon.min_subtotal}`
+                  : ""}
+                {coupon.usage_limit > 0
+                  ? ` · used ${coupon.used_count}/${coupon.usage_limit}`
+                  : ` · used ${coupon.used_count}x`}
+              </p>
             </div>
-            <div>
-              <label className="label">Type</label>
-              <select
-                value={form.discount_type}
-                onChange={(e) => setForm({ ...form, discount_type: e.target.value })}
-                className="input"
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => toggleActive(coupon)}
+                className={`px-2.5 py-1 rounded-full text-[11px] border ${
+                  coupon.is_active
+                    ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                    : "bg-slate-100 text-muted border-line"
+                }`}
               >
-                <option value="percentage">Percentage</option>
-                <option value="fixed">Fixed (৳)</option>
-              </select>
+                {coupon.is_active ? "Active" : "Inactive"}
+              </button>
+              <button
+                onClick={() =>
+                  setForm({
+                    ...coupon,
+                    starts_at: coupon.starts_at || "",
+                    ends_at: coupon.ends_at || "",
+                    max_discount: coupon.max_discount ?? "",
+                  })
+                }
+                className="text-xs text-muted hover:text-ink"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => deleteCoupon(coupon)}
+                aria-label="Delete coupon"
+                className="text-muted hover:text-red-600"
+              >
+                <Trash2 size={14} />
+              </button>
             </div>
-            <div>
-              <label className="label">Value</label>
-              <input
-                type="number"
-                value={form.discount_value}
-                onChange={(e) => setForm({ ...form, discount_value: e.target.value })}
-                className="input"
-                required
-              />
-            </div>
-            <div>
-              <label className="label">Min Subtotal (৳)</label>
-              <input
-                type="number"
-                value={form.min_subtotal}
-                onChange={(e) => setForm({ ...form, min_subtotal: e.target.value })}
-                className="input"
-              />
-            </div>
-            <div>
-              <label className="label">Max Discount (৳, optional)</label>
-              <input
-                type="number"
-                value={form.max_discount}
-                onChange={(e) => setForm({ ...form, max_discount: e.target.value })}
-                className="input"
-              />
-            </div>
-            <div>
-              <label className="label">Usage Limit (0 = unlimited)</label>
-              <input
-                type="number"
-                value={form.usage_limit}
-                onChange={(e) => setForm({ ...form, usage_limit: e.target.value })}
-                className="input"
-              />
-            </div>
-            <div>
-              <label className="label">Start (optional)</label>
-              <input
-                type="datetime-local"
-                value={form.starts_at}
-                onChange={(e) => setForm({ ...form, starts_at: e.target.value })}
-                className="input"
-              />
-            </div>
-            <div>
-              <label className="label">End (optional)</label>
-              <input
-                type="datetime-local"
-                value={form.ends_at}
-                onChange={(e) => setForm({ ...form, ends_at: e.target.value })}
-                className="input"
-              />
-            </div>
-
-            <div className="col-span-2 flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm text-ink">
-                <input
-                  type="checkbox"
-                  checked={form.is_active}
-                  onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-                />
-                Active
-              </label>
-              <div className="flex gap-2">
-                {form.id && (
-                  <button
-                    type="button"
-                    onClick={() => setForm(EMPTY_COUPON)}
-                    className="btn btn-ghost btn-sm"
-                  >
-                    Cancel
-                  </button>
-                )}
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="btn btn-primary btn-sm disabled:opacity-60"
-                >
-                  {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />}
-                  {form.id ? "Update" : "Create"}
-                </button>
-              </div>
-            </div>
-          </form>
-
-          <ul className="divide-y divide-line">
-            {coupons.map((coupon) => (
-              <li key={coupon.id} className="flex items-center justify-between py-2.5">
-                <div>
-                  <p className="text-sm font-medium text-ink">{coupon.code}</p>
-                  <p className="text-xs text-muted">
-                    {coupon.discount_type === "percentage"
-                      ? `${coupon.discount_value}% off`
-                      : `৳${coupon.discount_value} off`}
-                    {Number(coupon.min_subtotal) > 0
-                      ? ` · min ৳${coupon.min_subtotal}`
-                      : ""}
-                    {coupon.usage_limit > 0
-                      ? ` · used ${coupon.used_count}/${coupon.usage_limit}`
-                      : ` · used ${coupon.used_count}x`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => toggleActive(coupon)}
-                    className={`px-2.5 py-1 rounded-full text-[11px] border ${
-                      coupon.is_active
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                        : "bg-slate-100 text-muted border-line"
-                    }`}
-                  >
-                    {coupon.is_active ? "Active" : "Inactive"}
-                  </button>
-                  <button
-                    onClick={() =>
-                      setForm({
-                        ...coupon,
-                        starts_at: coupon.starts_at || "",
-                        ends_at: coupon.ends_at || "",
-                        max_discount: coupon.max_discount ?? "",
-                      })
-                    }
-                    className="text-xs text-muted hover:text-ink"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => deleteCoupon(coupon)}
-                    aria-label="Delete coupon"
-                    className="text-muted hover:text-red-600"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+          </li>
+        ))}
+      </ul>
     </Section>
   );
 }
 
 // ---------- Delivery zones ----------
 function ZonesManager({ zones, setZones, showFlash }) {
-  const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({ id: null, name: "", charge: 0, is_active: true });
+  const [form, setForm] = useState({
+    id: null,
+    name: "",
+    charge: 0,
+    is_active: true,
+  });
 
   async function save(e) {
     e.preventDefault();
@@ -768,76 +914,73 @@ function ZonesManager({ zones, setZones, showFlash }) {
   }
 
   return (
-    <Section title="Delivery Zones" collapsible open={open} setOpen={setOpen}>
-      {open && (
-        <>
-          <form onSubmit={save} className="flex gap-2 mb-4">
-            <input
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="Zone name (e.g. Dhaka City)"
-              className="input"
-              required
-            />
-            <input
-              type="number"
-              value={form.charge}
-              onChange={(e) => setForm({ ...form, charge: e.target.value })}
-              placeholder="Charge (৳)"
-              className="input w-32"
-              required
-            />
-            <button
-              type="submit"
-              className="btn btn-primary shrink-0"
-            >
-              {form.id ? "Update" : "Add"}
-            </button>
-            {form.id && (
-              <button
-                type="button"
-                onClick={() => setForm({ id: null, name: "", charge: 0, is_active: true })}
-                className="btn btn-ghost shrink-0"
-              >
-                Cancel
-              </button>
-            )}
-          </form>
+    <Section title="Delivery Zones">
+      <form onSubmit={save} className="flex gap-2 mb-4">
+        <input
+          value={form.name}
+          onChange={(e) => setForm({ ...form, name: e.target.value })}
+          placeholder="Zone name (e.g. Dhaka City)"
+          className="input"
+          required
+        />
+        <input
+          type="number"
+          value={form.charge}
+          onChange={(e) => setForm({ ...form, charge: e.target.value })}
+          placeholder="Charge (৳)"
+          className="input w-32"
+          required
+        />
+        <button type="submit" className="btn btn-primary shrink-0">
+          {form.id ? "Update" : "Add"}
+        </button>
+        {form.id && (
+          <button
+            type="button"
+            onClick={() =>
+              setForm({ id: null, name: "", charge: 0, is_active: true })
+            }
+            className="btn btn-ghost shrink-0"
+          >
+            Cancel
+          </button>
+        )}
+      </form>
 
-          <ul className="divide-y divide-line">
-            {zones.map((zone) => (
-              <li key={zone.id} className="flex items-center justify-between py-2.5">
-                <div>
-                  <p className="text-sm text-ink">{zone.name}</p>
-                  <p className="text-xs text-muted">৳{zone.charge}</p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setForm({ ...zone })}
-                    className="text-xs text-muted hover:text-ink"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => deleteZone(zone)}
-                    aria-label="Delete zone"
-                    className="text-muted hover:text-red-600"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+      <ul className="divide-y divide-line">
+        {zones.map((zone) => (
+          <li
+            key={zone.id}
+            className="flex items-center justify-between py-2.5"
+          >
+            <div>
+              <p className="text-sm text-ink">{zone.name}</p>
+              <p className="text-xs text-muted">৳{zone.charge}</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setForm({ ...zone })}
+                className="text-xs text-muted hover:text-ink"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => deleteZone(zone)}
+                aria-label="Delete zone"
+                className="text-muted hover:text-red-600"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
     </Section>
   );
 }
 
 // ---------- Discount rules ----------
 function RulesManager({ rules, setRules, showFlash }) {
-  const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     id: null,
     label: "",
@@ -890,145 +1033,150 @@ function RulesManager({ rules, setRules, showFlash }) {
   }
 
   return (
-    <Section title="Automatic Discount Rules" collapsible open={open} setOpen={setOpen}>
-      {open && (
-        <>
-          <p className="text-xs text-muted mb-4">
-            Automatically applied when a cart subtotal falls within the range.
-            The best single rule wins.
-          </p>
-          <form onSubmit={save} className="grid grid-cols-2 gap-3 border border-dashed border-line rounded-xl p-4 mb-4">
-            <div className="col-span-2">
-              <label className="label">Label</label>
-              <input
-                value={form.label}
-                onChange={(e) => setForm({ ...form, label: e.target.value })}
-                placeholder="e.g. Ramadan Special"
-                className="input"
-                required
-              />
-            </div>
-            <div>
-              <label className="label">Min Subtotal (৳)</label>
-              <input
-                type="number"
-                value={form.min_amount}
-                onChange={(e) => setForm({ ...form, min_amount: e.target.value })}
-                className="input"
-                required
-              />
-            </div>
-            <div>
-              <label className="label">Max Subtotal (৳, optional)</label>
-              <input
-                type="number"
-                value={form.max_amount}
-                onChange={(e) => setForm({ ...form, max_amount: e.target.value })}
-                className="input"
-              />
-            </div>
-            <div>
-              <label className="label">Type</label>
-              <select
-                value={form.discount_type}
-                onChange={(e) => setForm({ ...form, discount_type: e.target.value })}
-                className="input"
+    <Section title="Automatic Discount Rules">
+      <p className="text-xs text-muted mb-4">
+        Automatically applied when a cart subtotal falls within the range. The
+        best single rule wins.
+      </p>
+      <form
+        onSubmit={save}
+        className="grid grid-cols-2 gap-3 border border-dashed border-line rounded-xl p-4 mb-4"
+      >
+        <div className="col-span-2">
+          <label className="label">Label</label>
+          <input
+            value={form.label}
+            onChange={(e) => setForm({ ...form, label: e.target.value })}
+            placeholder="e.g. Ramadan Special"
+            className="input"
+            required
+          />
+        </div>
+        <div>
+          <label className="label">Min Subtotal (৳)</label>
+          <input
+            type="number"
+            value={form.min_amount}
+            onChange={(e) => setForm({ ...form, min_amount: e.target.value })}
+            className="input"
+            required
+          />
+        </div>
+        <div>
+          <label className="label">Max Subtotal (৳, optional)</label>
+          <input
+            type="number"
+            value={form.max_amount}
+            onChange={(e) => setForm({ ...form, max_amount: e.target.value })}
+            className="input"
+          />
+        </div>
+        <div>
+          <label className="label">Type</label>
+          <select
+            value={form.discount_type}
+            onChange={(e) =>
+              setForm({ ...form, discount_type: e.target.value })
+            }
+            className="input"
+          >
+            <option value="fixed">Fixed (৳)</option>
+            <option value="percentage">Percentage</option>
+          </select>
+        </div>
+        <div>
+          <label className="label">Value</label>
+          <input
+            type="number"
+            value={form.discount_value}
+            onChange={(e) =>
+              setForm({ ...form, discount_value: e.target.value })
+            }
+            className="input"
+            required
+          />
+        </div>
+        <div className="col-span-2 flex items-center justify-between">
+          <label className="flex items-center gap-2 text-sm text-ink">
+            <input
+              type="checkbox"
+              checked={form.is_active}
+              onChange={(e) =>
+                setForm({ ...form, is_active: e.target.checked })
+              }
+            />
+            Active
+          </label>
+          <div className="flex gap-2">
+            {form.id && (
+              <button
+                type="button"
+                onClick={() =>
+                  setForm({
+                    id: null,
+                    label: "",
+                    min_amount: 0,
+                    max_amount: "",
+                    discount_type: "fixed",
+                    discount_value: 0,
+                    is_active: true,
+                  })
+                }
+                className="btn btn-ghost btn-sm"
               >
-                <option value="fixed">Fixed (৳)</option>
-                <option value="percentage">Percentage</option>
-              </select>
-            </div>
-            <div>
-              <label className="label">Value</label>
-              <input
-                type="number"
-                value={form.discount_value}
-                onChange={(e) => setForm({ ...form, discount_value: e.target.value })}
-                className="input"
-                required
-              />
-            </div>
-            <div className="col-span-2 flex items-center justify-between">
-              <label className="flex items-center gap-2 text-sm text-ink">
-                <input
-                  type="checkbox"
-                  checked={form.is_active}
-                  onChange={(e) => setForm({ ...form, is_active: e.target.checked })}
-                />
-                Active
-              </label>
-              <div className="flex gap-2">
-                {form.id && (
-                  <button
-                    type="button"
-                    onClick={() => setForm({ id: null, label: "", min_amount: 0, max_amount: "", discount_type: "fixed", discount_value: 0, is_active: true })}
-                    className="btn btn-ghost btn-sm"
-                  >
-                    Cancel
-                  </button>
-                )}
-                <button type="submit" className="btn btn-primary btn-sm">
-                  <Save size={14} /> {form.id ? "Update" : "Add"}
-                </button>
-              </div>
-            </div>
-          </form>
+                Cancel
+              </button>
+            )}
+            <button type="submit" className="btn btn-primary btn-sm">
+              <Save size={14} /> {form.id ? "Update" : "Add"}
+            </button>
+          </div>
+        </div>
+      </form>
 
-          <ul className="divide-y divide-line">
-            {rules.map((rule) => (
-              <li key={rule.id} className="flex items-center justify-between py-2.5">
-                <div>
-                  <p className="text-sm text-ink">{rule.label}</p>
-                  <p className="text-xs text-muted">
-                    {rule.discount_type === "percentage"
-                      ? `${rule.discount_value}%`
-                      : `৳${rule.discount_value}`}
-                    {rule.max_amount != null
-                      ? ` · from ৳${rule.min_amount} to ৳${rule.max_amount}`
-                      : ` · from ৳${rule.min_amount}`}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setForm({ ...rule, max_amount: rule.max_amount ?? "" })}
-                    className="text-xs text-muted hover:text-ink"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => deleteRule(rule)}
-                    aria-label="Delete rule"
-                    className="text-muted hover:text-red-600"
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
+      <ul className="divide-y divide-line">
+        {rules.map((rule) => (
+          <li
+            key={rule.id}
+            className="flex items-center justify-between py-2.5"
+          >
+            <div>
+              <p className="text-sm text-ink">{rule.label}</p>
+              <p className="text-xs text-muted">
+                {rule.discount_type === "percentage"
+                  ? `${rule.discount_value}%`
+                  : `৳${rule.discount_value}`}
+                {rule.max_amount != null
+                  ? ` · from ৳${rule.min_amount} to ৳${rule.max_amount}`
+                  : ` · from ৳${rule.min_amount}`}
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() =>
+                  setForm({ ...rule, max_amount: rule.max_amount ?? "" })
+                }
+                className="text-xs text-muted hover:text-ink"
+              >
+                Edit
+              </button>
+              <button
+                onClick={() => deleteRule(rule)}
+                aria-label="Delete rule"
+                className="text-muted hover:text-red-600"
+              >
+                <Trash2 size={14} />
+              </button>
+            </div>
+          </li>
+        ))}
+      </ul>
     </Section>
   );
 }
 
 // ---------- Shared section wrapper ----------
-function Section({ title, children, collapsible, open, setOpen }) {
-  if (collapsible) {
-    return (
-      <div className="card p-6">
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          className="w-full flex items-center justify-between text-sm font-semibold text-ink"
-        >
-          <span>{title}</span>
-          <ChevronDown size={15} className={`transition-transform ${open ? "rotate-180" : ""}`} />
-        </button>
-        {open && <div className="mt-4">{children}</div>}
-      </div>
-    );
-  }
+function Section({ title, children }) {
   return (
     <div className="card p-6">
       <h2 className="text-sm font-semibold text-ink mb-4">{title}</h2>

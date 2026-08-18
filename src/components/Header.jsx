@@ -113,12 +113,6 @@ export default function Header({ theme }) {
 
       <span className="text-lg sm:text-xl font-semibold tracking-tight text-ink">
         {storeName.split(" ")[0]}
-
-        <span className="text-accent">
-          {storeName.split(" ").slice(1).join(" ")
-            ? ` ${storeName.split(" ").slice(1).join(" ")}`
-            : " Food"}
-        </span>
       </span>
     </Link>
   );
